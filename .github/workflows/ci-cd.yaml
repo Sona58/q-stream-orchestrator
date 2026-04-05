@@ -55,9 +55,17 @@ jobs:
         kubectl rollout status deployment/q-stream-worker --timeout=180s
         kubectl rollout status deployment/q-stream-api --timeout=180s
         
-    - name: Check API Logs
+    - name: Check API Failure
       run: |
-        kubectl logs deployment/q-stream-api
+        echo "--- POD STATUS ---"
+        kubectl get pods
+        
+        echo "--- DESCRIBE POD (To see if it's OOMKilled or ImagePullBackOff) ---"
+        kubectl describe pod -l app=quantum-api | head -n 30
+        
+        echo "--- ACTUAL LOGS (Force tail) ---"
+        # Using --tail=-1 ensures we get everything from the start
+        kubectl logs -l app=quantum-api --tail=-1
 
     - name: Integration Test
       run: |
