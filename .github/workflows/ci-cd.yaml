@@ -55,19 +55,34 @@ jobs:
         kubectl rollout status deployment/q-stream-worker --timeout=180s
         kubectl rollout status deployment/q-stream-api --timeout=180s
 
-    - name: Integration Test (End-to-End)
+    - name: Integration Test
       run: |
-        # Start a port-forward to talk to the API from the runner
+        # Start port-forward in the background
         kubectl port-forward service/q-stream-service 8888:80 &
-        sleep 10
         
-        # Test 1: Health Check
-        curl -v http://localhost:8888/
+        # Wait for the API to be responsive (Retry loop)
+        echo "Waiting for API to respond at localhost:8888..."
+        for i in {1..20}; do
+          if curl -s http://localhost:8888/ > /dev/null; then
+            echo "API is UP!"
+            break
+          fi
+          echo "Still waiting... ($i/20)"
+          sleep 3
+        done
+
+        # Submit a Job
+        RESPONSE=$(curl -s -X POST "http://localhost:8888/run-simulation?qubits=3")
+        echo "Response: $RESPONSE"
+        JOB_ID=$(echo $RESPONSE | jq -r '.job_id')
         
-        # Test 2: Submit a Job
-        JOB_ID=$(curl -s -X POST "http://localhost:8888/run-simulation?qubits=3" | jq -r '.job_id')
+        if [ "$JOB_ID" == "null" ]; then
+          echo "Failed to get Job ID"
+          exit 1
+        fi
+        
         echo "Submitted Job ID: $JOB_ID"
         
-        # Test 3: Poll for result (Wait for Celery to finish)
-        sleep 15
-        curl -s "http://localhost:8888/results/$JOB_ID"
+        # Wait for worker to process
+        sleep 10
+        curl -s "http://localhost:8888/results/$JOB_ID" | jq .
