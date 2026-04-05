@@ -30,6 +30,7 @@ docker compose up --build
 
 # In a new terminal, submit a 4-qubit Quantum job
 curl -X POST "http://localhost:8000/run-simulation?qubits=4"
+```
 
 ---
 
@@ -62,11 +63,13 @@ We utilize a multi-tier testing strategy to ensure system stability:
 ```bash
 # Run unit tests and API integration tests
 PYTHONPATH=. pytest tests/ -v
-Unit Tests: Validate the mathematical accuracy of the Quantum GHZ state generation.
+```
 
-Integration Tests: Verify the connectivity between the API gateway and the Redis broker.
+* **Unit Tests:** Validate the mathematical accuracy of the Quantum GHZ state generation.
 
-📈 Future Roadmap
+* **Integration Tests:** Verify the connectivity between the API gateway and the Redis broker.
+
+### 📈 Future Roadmap
 [ ] Implement WebSockets for real-time simulation progress updates.
 
 [ ] Add PostgreSQL for persistent long-term storage of Quantum results.

@@ -32,6 +32,9 @@ jobs:
       # We set PYTHONPATH so pytest can find the 'api' and 'worker' folders
       env:
         PYTHONPATH: .
+        # Use 'memory://' to prevent Celery from looking for a real Redis
+        CELERY_BROKER_URL: memory://
+        CELERY_RESULT_BACKEND: cache+memory://
       run: |
         # Run all tests in the tests/ folder
         # -v: verbose, -s: show print statements
