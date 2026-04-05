@@ -63,4 +63,4 @@ def execute_quantum_circuit(self, num_qubits: int):
 
     except Exception as e:
         # Handle failures gracefully so the worker doesn't die
-        return {"status": "FAILED", "error": str(e), "task_id"=tid}
+        return {"status": "FAILED", "error": str(e), "task_id":tid}
