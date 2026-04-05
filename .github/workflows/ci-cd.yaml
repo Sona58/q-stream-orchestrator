@@ -15,6 +15,27 @@ jobs:
 
     - name: Start Minikube
       uses: medyagh/setup-minikube@master
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies for testing
+      run: |
+        # Install all requirements from both folders plus testing tools
+        pip install pytest httpx pytest-mock
+        pip install -r api/requirements.txt
+        pip install -r worker/requirements.txt
+
+    - name: Run Unit Tests
+      # We set PYTHONPATH so pytest can find the 'api' and 'worker' folders
+      env:
+        PYTHONPATH: .
+      run: |
+        # Run all tests in the tests/ folder
+        # -v: verbose, -s: show print statements
+        pytest tests/ -v
 
     # --- IMAGE 1: THE API ---
     - name: Build and Load API Image
