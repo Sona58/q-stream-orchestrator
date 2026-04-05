@@ -21,7 +21,7 @@ def test_submit_job(mock_send_task):
     response = client.post("/run-simulation?qubits=2")
     assert response.status_code == 200
     assert response.json()["job_id"] == "fake-job-id"
-    assert response.json["status"] == "QUEUED"
+    assert response.json()["status"] == "QUEUED"
 
 @patch("api.main.AsyncResult")
 def test_get_nonexistent_job(mock_async_result):
