@@ -1,0 +1,73 @@
+name: Q-Stream CI/CD Pipeline
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Start Minikube
+      uses: medyagh/setup-minikube@master
+
+    # --- IMAGE 1: THE API ---
+    - name: Build and Load API Image
+      run: |
+        docker build -t quantum-kube-api:test -f docker/api.Dockerfile .
+        minikube image load quantum-kube-api:test
+
+    # --- IMAGE 2: THE WORKER ---
+    - name: Build and Load Worker Image
+      run: |
+        docker build -t quantum-kube-worker:test -f docker/worker.Dockerfile .
+        minikube image load quantum-kube-worker:test
+
+    # --- INFRASTRUCTURE SETUP ---
+    - name: Deploy Orchestration Layer
+      env:
+        # Securely pull the secret from GitHub Secrets
+        IBM_SECRET: ${{ secrets.IBM_QUANTUM_TOKEN }}
+      run: |
+        # 1. Inject the Secret FIRST
+        kubectl create secret generic quantum-api-key --from-literal=IBM_TOKEN=$IBM_SECRET || true
+        
+        # 2. Deploy Redis (The Backbone)
+        kubectl apply -f argo-templates/redis-deploy.yaml
+        
+        # 3. Patch and Deploy the Worker (The Engine)
+        sed -i 's/imagePullPolicy: Never/imagePullPolicy: IfNotPresent/g' argo-templates/worker-deploy.yaml
+        kubectl apply -f argo-templates/worker-deploy.yaml
+        
+        # 4. Patch and Deploy the API (The Gateway)
+        sed -i 's/imagePullPolicy: Never/imagePullPolicy: IfNotPresent/g' argo-templates/api-deploy.yaml
+        kubectl apply -f argo-templates/api-deploy.yaml
+
+    # --- VERIFICATION ---
+    - name: Wait for Rollout
+      run: |
+        kubectl rollout status deployment/redis-deployment --timeout=90s
+        kubectl rollout status deployment/q-stream-worker --timeout=180s
+        kubectl rollout status deployment/q-stream-api --timeout=180s
+
+    - name: Integration Test (End-to-End)
+      run: |
+        # Start a port-forward to talk to the API from the runner
+        kubectl port-forward service/q-stream-service 8888:80 &
+        sleep 10
+        
+        # Test 1: Health Check
+        curl -v http://localhost:8888/
+        
+        # Test 2: Submit a Job
+        JOB_ID=$(curl -s -X POST "http://localhost:8888/run-simulation?qubits=3" | jq -r '.job_id')
+        echo "Submitted Job ID: $JOB_ID"
+        
+        # Test 3: Poll for result (Wait for Celery to finish)
+        sleep 15
+        curl -s "http://localhost:8888/results/$JOB_ID"
