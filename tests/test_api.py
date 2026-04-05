@@ -13,7 +13,7 @@ def test_read_main():
     assert response.status_code == 200
     assert response.json() == {"service": "Q-Stream API", "status": "Online"}
 
-@patch("app.main.celery_app.send_task")
+@patch("api.main.celery_app.send_task")
 def test_submit_job(mock_send_task):
     # Mocking the object returned by send_task
     mock_send_task.return_value.id = "fake-job-id"
