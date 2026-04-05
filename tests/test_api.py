@@ -13,7 +13,7 @@ def test_read_main():
     assert response.status_code == 200
     assert response.json() == {"service": "Q-Stream API", "status": "Online"}
 
-@patch("api.main.execute_quantum_circuit.delay")
+@patch("worker.tasks.execute_quantum_circuit.delay")
 def test_submit_job(mock_delay):
     # Mocking the delay() call so it returns fake job object
     mock_delay.return_value.id = "fake-job-id"
