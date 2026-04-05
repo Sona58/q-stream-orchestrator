@@ -31,8 +31,12 @@ def execute_quantum_circuit(self, num_qubits: int):
         if not HAS_QISKIT:
             return {"status": "FAILED", "error": "Qiskit/Aer not installed in environment", "task_id": tid}
         
+        if num_qubits < 1:
+            return {"status": "FAILED", "error": "Qubit count must be at least 1", "task_id": tid}
+        
         # 1. Update status for the user to see
-        self.update_state(state='PROGRESS', meta={'status': 'Initializing Simulator'})
+        if self.request.id:
+            self.update_state(state='PROGRESS', meta={'status': 'Initializing Simulator'})
         
         # 2. Build the Circuit (The Physics Logic)
         qc = QuantumCircuit(num_qubits)
@@ -43,8 +47,9 @@ def execute_quantum_circuit(self, num_qubits: int):
 
         # 3. Simulate execution time (to mimic real QPU latency)
         # As an architect, we add this to test how our queue handles 'busy' workers
-        self.update_state(state='PROGRESS', meta={'status': 'Running Simulation...'})
-        time.sleep(5) 
+        if self.request.id:
+            self.update_state(state='PROGRESS', meta={'status': 'Running Simulation...'})
+            time.sleep(5) 
 
         # 4. Run the simulation
         simulator = AerSimulator()

@@ -3,11 +3,7 @@
 import pytest
 from worker.tasks import execute_quantum_circuit
 
-@patch("worker.tasks.execute_quantum_circuit.delay")
-def test_quantum_circuit_logic(mock_delay):
-    # Mocking the delay() call so it returns fake job object
-    mock_delay.return_value.id = "fake-job-id"
-    
+def test_quantum_circuit_logic():
     # Test with 3 qubits
     num_qubits = 3
     result = execute_quantum_circuit.run(num_qubits) # .run() calls it locally, bypassing Celery

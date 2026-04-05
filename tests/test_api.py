@@ -13,10 +13,10 @@ def test_read_main():
     assert response.status_code == 200
     assert response.json() == {"service": "Q-Stream API", "status": "Online"}
 
-@patch("worker.tasks.execute_quantum_circuit.delay")
-def test_submit_job(mock_delay):
-    # Mocking the delay() call so it returns fake job object
-    mock_delay.return_value.id = "fake-job-id"
+@patch("app.main.celery_app.send_task")
+def test_submit_job(mock_send_task):
+    # Mocking the object returned by send_task
+    mock_send_task.return_value.id = "fake-job-id"
     # This tests if the API can successfully hand a job to the (mocked) broker
     response = client.post("/run-simulation?qubits=2")
     assert response.status_code == 200
