@@ -3,8 +3,12 @@
 import os
 import time
 from celery import Celery
-from qiskit import QuantumCircuit
-from qiskit_aer import AerSimulator
+try:
+    from qiskit_aer import AerSimulator
+    from qiskit import QuantumCircuit, transpile
+    HAS_QISKIT = True
+except ImportError:
+    HAS_QISKIT = False
 
 # Configure Celery to use Redis as the Broker and Result Backend
 # In K8s, 'redis-service' will be the internal DNS name for our Redis pod
@@ -20,6 +24,13 @@ def execute_quantum_circuit(self, num_qubits: int):
     This is the 'Heavy Lifting' that runs asynchronously.
     """
     try:
+        
+        # Fallback for Task ID if running locally/testing
+        tid = self.request.id if self.request.id else "test-id"
+        
+        if not HAS_QISKIT:
+            return {"status": "FAILED", "error": "Qiskit/Aer not installed in environment", "task_id": tid}
+        
         # 1. Update status for the user to see
         self.update_state(state='PROGRESS', meta={'status': 'Initializing Simulator'})
         
@@ -46,9 +57,10 @@ def execute_quantum_circuit(self, num_qubits: int):
             "num_qubits": num_qubits,
             "counts": counts,
             "status": "COMPLETED",
-            "engine": "AerSimulator-V1"
+            "engine": "AerSimulator-V1",
+            "task_id": tid
         }
 
     except Exception as e:
         # Handle failures gracefully so the worker doesn't die
-        return {"status": "FAILED", "error": str(e)}
+        return {"status": "FAILED", "error": str(e), "task_id"=tid}
